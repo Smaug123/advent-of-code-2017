@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashSet;
 
 fn input() -> Vec<Vec<u32>> {
@@ -7,7 +8,10 @@ fn input() -> Vec<Vec<u32>> {
         .map(|l| {
             l.trim()
                 .split_whitespace()
-                .map(|i| i.parse().expect(&format!("{} wasn't a valid u32", i)))
+                .map(|i| {
+                    i.parse()
+                        .unwrap_or_else(|_| panic!("{} wasn't a valid u32", i))
+                })
                 .collect::<Vec<u32>>()
         })
         .collect::<Vec<Vec<u32>>>()
@@ -21,7 +25,7 @@ where
     if let Some(fst) = i.next() {
         let mut top = fst;
         let mut bot = fst;
-        while let Some(next) = i.next() {
+        for next in i {
             if next > top {
                 top = next;
             }
@@ -39,16 +43,22 @@ fn even_divisor<I>(iter: &mut I) -> Option<(u32, u32)>
 where
     I: Iterator<Item = u32>,
 {
-    let mut seen = HashSet::new();
+    let mut seen: HashSet<u32> = HashSet::new();
     for i in iter {
         for s in &seen {
             let s = *s;
-            if s > i {
-                if s % i == 0 {
-                    return Some((s, i));
+            match u32::cmp(&s, &i) {
+                Ordering::Less => {
+                    if i % s == 0 {
+                        return Some((i, s));
+                    };
                 }
-            } else if i > s {
-                if i % s == 0 {
+                Ordering::Greater => {
+                    if s % i == 0 {
+                        return Some((s, i));
+                    };
+                }
+                Ordering::Equal => {
                     return Some((i, s));
                 }
             }
@@ -128,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn test_day_1() {
+    fn test_day_2() {
         let input = input();
         let answer = part_1(&mut input.iter().map(|r| r.iter().cloned()));
         assert_eq!(answer, 44887);

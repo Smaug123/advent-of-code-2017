@@ -3,7 +3,10 @@ fn input() -> Vec<u32> {
     input
         .trim()
         .chars()
-        .map(|l| l.to_digit(10).expect(&format!("{} wasn't a valid u32", l)))
+        .map(|l| {
+            l.to_digit(10)
+                .unwrap_or_else(|| panic!("{} wasn't a valid u32", l))
+        })
         .collect::<Vec<u32>>()
 }
 
@@ -11,16 +14,19 @@ pub fn part_1(numbers: &[u32]) -> u32 {
     let mut sum = 0;
     let mut previous = numbers[0];
     let len = numbers.len();
-    for i in 1..len {
-        if numbers[i] == previous {
+    for &item in numbers.iter().skip(1) {
+        if item == previous {
             sum += previous;
         }
-        previous = numbers[i];
+        previous = item;
     }
-    if len > 1 {
-        if previous == numbers[0] {
-            sum += previous;
-        }
+    if len <= 1 {
+        // Start = end, so no need to compare last with first
+        return sum;
+    }
+
+    if previous == numbers[0] {
+        sum += previous;
     }
 
     sum
