@@ -105,41 +105,48 @@ fn input() -> Vec<Node<'static>> {
     input.lines().map(|l| parse_line(l)).collect::<Vec<Node>>()
 }
 
-fn tree_it<'a>(nodes: &[Node<'a>]) -> Tree<'a> {
+fn tree_it<'a>(nodes: &[Node<'a>]) -> Box<Tree<'a>> {
     let nodes: HashMap<&'a str, &Node<'a>> = nodes.iter().map(|i| (i.name, i)).collect();
     let mut built: HashMap<&'a str, Box<Tree<'a>>> = HashMap::new();
     let mut stack: Vec<&'a str> = vec![];
-    for name in nodes.keys() {
+    let mut top_name = None;
+    for &name in nodes.keys() {
         if !built.contains_key(name) {
             stack.push(name);
-            while stack.len() > 0 {
-                let node = *nodes.get(stack[stack.len() - 1]).unwrap();
-                let required = node.children.iter().filter(|&&i| !built.contains_key(i));
+            while let Some(node_name) = stack.pop() {
+                let node = *nodes.get(node_name).unwrap();
+                let (existing, required): (Vec<_>, Vec<_>) = node
+                    .children
+                    .iter()
+                    .map(|&i| (i, built.get(i)))
+                    .partition(|&(_, b)| b.is_some());
+                let required = required.iter().map(|&(name, _)| name);
                 let old_len = stack.len();
                 stack.extend(required);
                 if stack.len() == old_len {
-                    let tree = Box::new(Tree {
+                    let children = existing
+                        .iter()
+                        .map(|&(_, value)| (*value.unwrap()).as_ref())
+                        .collect();
+                    let tree: Box<Tree> = Box::new(Tree {
                         name: node.name,
                         weight: node.weight,
-                        children: node
-                            .children
-                            .iter()
-                            .map(|&i| built.get(i).unwrap().as_ref())
-                            .collect(),
+                        children,
                     });
 
                     built.insert(node.name, tree);
-                    stack.pop();
+                } else {
+                    top_name = Some(name);
                 }
             }
         }
     }
-    panic!("")
+    *built.get(top_name.unwrap()).unwrap()
 }
 
 fn part_1<'a>(nodes: &[Node<'a>]) -> &'a str {
     let tree = tree_it(nodes);
-    ""
+    tree.name
 }
 
 fn part_2(nodes: &[Node]) -> u32 {
