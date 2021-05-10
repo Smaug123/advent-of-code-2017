@@ -40,7 +40,7 @@ fn connected_component<T>(relations: &HashMap<T, &[T]>, component: T) -> HashSet
 where
     T: Eq + Hash + Clone,
 {
-    let mut stack: Vec<_> = relations.get(&component).unwrap().iter().cloned().collect();
+    let mut stack: Vec<_> = relations.get(&component).unwrap().to_vec();
     let mut connected: HashSet<_> = HashSet::new();
     connected.insert(component);
 
@@ -59,7 +59,7 @@ fn part_1(input: &[Node]) -> usize {
         .iter()
         .map(|n| (n.number, n.friends.as_slice()))
         .collect();
-    connected_component(&relations, 0).iter().count()
+    connected_component(&relations, 0).len()
 }
 
 fn part_2(input: &[Node]) -> u32 {
