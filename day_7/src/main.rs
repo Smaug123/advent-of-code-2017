@@ -105,9 +105,10 @@ fn input() -> Vec<Node<'static>> {
     input.lines().map(|l| parse_line(l)).collect::<Vec<Node>>()
 }
 
-fn tree_it<'a>(nodes: &[Node<'a>]) -> Box<Tree<'a>> {
+fn tree_it<'a>(nodes: &[Node<'a>]) -> &'a Tree<'a>
+{
     let nodes: HashMap<&'a str, &Node<'a>> = nodes.iter().map(|i| (i.name, i)).collect();
-    let mut built: HashMap<&'a str, Box<Tree<'a>>> = HashMap::new();
+    let mut built: HashMap<&'a str, &'a Tree<'a>> = HashMap::new();
     let mut stack: Vec<&'a str> = vec![];
     let mut top_name = None;
     for &name in nodes.keys() {
@@ -120,21 +121,19 @@ fn tree_it<'a>(nodes: &[Node<'a>]) -> Box<Tree<'a>> {
                     .iter()
                     .map(|&i| (i, built.get(i)))
                     .partition(|&(_, b)| b.is_some());
+                let existing = existing.iter().map(|&(_, value)| &**value.unwrap());
                 let required = required.iter().map(|&(name, _)| name);
                 let old_len = stack.len();
                 stack.extend(required);
                 if stack.len() == old_len {
-                    let children = existing
-                        .iter()
-                        .map(|&(_, value)| (*value.unwrap()).as_ref())
-                        .collect();
-                    let tree: Box<Tree> = Box::new(Tree {
+                    let children: Vec<_> = existing.collect::<Vec<_>>();
+                    let tree: Box<Tree<'a>> = Box::new(Tree {
                         name: node.name,
                         weight: node.weight,
-                        children,
+                        children: children,
                     });
 
-                    built.insert(node.name, tree);
+                    built.insert(node.name, &*tree);
                 } else {
                     top_name = Some(name);
                 }
