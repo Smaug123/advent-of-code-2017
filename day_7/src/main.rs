@@ -105,47 +105,58 @@ fn input() -> Vec<Node<'static>> {
     input.lines().map(|l| parse_line(l)).collect::<Vec<Node>>()
 }
 
-fn tree_it<'a>(nodes: &[Node<'a>]) -> &'a Tree<'a>
-{
-    let nodes: HashMap<&'a str, &Node<'a>> = nodes.iter().map(|i| (i.name, i)).collect();
-    let mut built: HashMap<&'a str, &'a Tree<'a>> = HashMap::new();
-    let mut stack: Vec<&'a str> = vec![];
-    let mut top_name = None;
-    for &name in nodes.keys() {
-        if !built.contains_key(name) {
-            stack.push(name);
-            while let Some(node_name) = stack.pop() {
-                let node = *nodes.get(node_name).unwrap();
-                let (existing, required): (Vec<_>, Vec<_>) = node
+fn tree_it<'a>(nodes: &[Node<'a>]) -> (Vec<Tree<'a>>, usize) {
+    let nodes_by_name: HashMap<&'a str, (&Node<'a>, usize)> = nodes
+        .iter()
+        .enumerate()
+        .map(|(count, i)| (i.name, (i, count)))
+        .collect();
+    let mut built: Vec<Tree<'a>> = Vec::with_capacity(nodes.len());
+    let mut is_set: Vec<bool> = vec![false; nodes.len()];
+
+    let mut stack: Vec<usize> = vec![];
+    let mut top_node = None;
+    for parent_node_index in 0..nodes.len() {
+        if !is_set[parent_node_index] {
+            stack.push(parent_node_index);
+            while let Some(node_index) = stack.pop() {
+                let node = &nodes[node_index];
+                let (existing, required): (Vec<_>, Vec<_>) = (*node)
                     .children
                     .iter()
-                    .map(|&i| (i, built.get(i)))
-                    .partition(|&(_, b)| b.is_some());
-                let existing = existing.iter().map(|&(_, value)| &**value.unwrap());
-                let required = required.iter().map(|&(name, _)| name);
+                    .map(|&i| {
+                        let (_, child_index) = nodes_by_name.get(i).unwrap();
+                        (i, *child_index)
+                    })
+                    .partition(|&(_, b)| is_set[b]);
+                let required = required.iter().map(|&(name, _)| {
+                    let (_, child_index) = nodes_by_name.get(name).unwrap();
+                    *child_index
+                });
                 let old_len = stack.len();
                 stack.extend(required);
                 if stack.len() == old_len {
-                    let children: Vec<_> = existing.collect::<Vec<_>>();
-                    let tree: Box<Tree<'a>> = Box::new(Tree {
+                    built[node_index] = Tree {
                         name: node.name,
                         weight: node.weight,
-                        children: children,
-                    });
-
-                    built.insert(node.name, &*tree);
+                        children: vec![],
+                    };
+                    built[node_index]
+                        .children
+                        .extend(existing.iter().map(|&(_, value)| &built[value]));
+                    is_set[node_index] = true;
                 } else {
-                    top_name = Some(name);
+                    top_node = Some(node_index);
                 }
             }
         }
     }
-    *built.get(top_name.unwrap()).unwrap()
+    (built, top_node.unwrap())
 }
 
 fn part_1<'a>(nodes: &[Node<'a>]) -> &'a str {
-    let tree = tree_it(nodes);
-    tree.name
+    let (trees, top_node) = tree_it(nodes);
+    trees[top_node].name
 }
 
 fn part_2(nodes: &[Node]) -> u32 {
