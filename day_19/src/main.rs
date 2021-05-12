@@ -21,7 +21,7 @@ fn input() -> Vec<Vec<Square>> {
     let input = include_str!("../input.txt");
     let mut output = input
         .lines()
-        .map(|l| l.chars().map(|c| parse(c)).collect())
+        .map(|l| l.chars().map(parse).collect())
         .collect::<Vec<Vec<_>>>();
     let max_len = output.iter().map(|l| l.len()).max().unwrap();
     for row in output.iter_mut() {
@@ -32,18 +32,12 @@ fn input() -> Vec<Vec<Square>> {
     output
 }
 
-fn execute(square: &Vec<Vec<Square>>) -> (String, u32) {
+fn execute(square: &[Vec<Square>]) -> (String, u32) {
     let mut row = 0;
     let mut col = square[0]
         .iter()
         .enumerate()
-        .filter_map(|(i, &j)| {
-            if j == Square::Vertical {
-                Some(i.clone())
-            } else {
-                None
-            }
-        })
+        .filter_map(|(i, &j)| if j == Square::Vertical { Some(i) } else { None })
         .next()
         .unwrap();
 
@@ -116,13 +110,11 @@ fn execute(square: &Vec<Vec<Square>>) -> (String, u32) {
             } else {
                 col += 1;
             };
+        } else if is_vertical {
+            row -= 1;
         } else {
-            if is_vertical {
-                row -= 1;
-            } else {
-                col -= 1;
-            };
-        }
+            col -= 1;
+        };
     }
 }
 
