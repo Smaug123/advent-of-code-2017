@@ -44,7 +44,6 @@ pub mod day_4 {
             })
             .count()
     }
-
 }
 
 #[cfg(test)]
