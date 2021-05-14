@@ -3,9 +3,9 @@ pub mod day_7 {
 
     #[derive(Debug, PartialEq, Eq)]
     pub struct Node<'a> {
-        name: &'a str,
-        weight: u32,
-        children: Vec<&'a str>,
+        pub(crate) name: &'a str,
+        pub(crate) weight: u32,
+        pub(crate) children: Vec<&'a str>,
     }
 
     struct TreeNode<'a> {
@@ -28,7 +28,7 @@ pub mod day_7 {
         ExpectSpace,
     }
 
-    fn parse_line(s: &str) -> Node {
+    pub fn parse_line(s: &str) -> Node {
         let mut state = ParserState::Name;
         let mut count: usize = 0;
         let mut name_end = 0;
