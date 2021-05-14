@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use day_5::day_5::{input, part_2};
 
 fn criterion_benchmark(c: &mut Criterion) {
