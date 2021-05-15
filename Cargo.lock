@@ -227,6 +227,9 @@ version = "0.1.0"
 [[package]]
 name = "day_3"
 version = "0.1.0"
+dependencies = [
+ "criterion",
+]
 
 [[package]]
 name = "day_4"
