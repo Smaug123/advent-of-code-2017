@@ -148,7 +148,7 @@ pub mod day_25 {
     }
 
     impl ExecutingTuringMachine<'_> {
-        fn new<'a>(t: &'a TuringMachine) -> ExecutingTuringMachine {
+        fn new(t: &TuringMachine) -> ExecutingTuringMachine {
             ExecutingTuringMachine {
                 state: t.starting_state,
                 tape_positive: vec![],
