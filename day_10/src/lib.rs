@@ -69,28 +69,31 @@ pub mod day_10 {
         }
     }
 
-    pub fn knot_hash_unsalted(bytes: &[u8]) -> String {
+    pub fn knot_hash_unsalted(bytes: &[u8]) -> Vec<u8> {
         let mut state = new_state(256);
         for _ in 0..64 {
             execute_round(&mut state, &bytes);
         }
-        let dense = densify(&state.v);
-        let mut answer = vec![0u8; 2 * dense.len()];
-        for (i, b) in dense.iter().enumerate() {
+        densify(&state.v)
+    }
+
+    pub fn knot_hash(bytes: &[u8]) -> Vec<u8> {
+        let mut copy: Vec<u8> = bytes.to_vec();
+        copy.extend(vec![17, 31, 73, 47, 23]);
+        knot_hash_unsalted(&copy)
+    }
+
+    pub fn to_hex_str(bytes: &[u8]) -> String {
+        let mut answer = vec![0u8; 2 * bytes.len()];
+        for (i, b) in bytes.iter().enumerate() {
             answer[2 * i] = to_hex(b / 16);
             answer[2 * i + 1] = to_hex(b % 16);
         }
         String::from_utf8(answer).unwrap()
     }
 
-    pub fn knot_hash(bytes: &[u8]) -> String {
-        let mut copy: Vec<u8> = bytes.to_vec();
-        copy.extend(vec![17, 31, 73, 47, 23]);
-        knot_hash_unsalted(&copy)
-    }
-
     pub fn part_2(input: &[u8]) -> String {
-        knot_hash(input)
+        to_hex_str(&knot_hash(input))
     }
 }
 
@@ -109,17 +112,20 @@ mod tests {
 
     #[test]
     fn part2_known() {
-        assert_eq!(knot_hash("".as_bytes()), "a2582a3a0e66e6e86e3812dcb672a272");
         assert_eq!(
-            knot_hash("AoC 2017".as_bytes()),
+            to_hex_str(&knot_hash("".as_bytes())),
+            "a2582a3a0e66e6e86e3812dcb672a272"
+        );
+        assert_eq!(
+            to_hex_str(&knot_hash("AoC 2017".as_bytes())),
             "33efeb34ea91902bb2f59c9920caa6cd"
         );
         assert_eq!(
-            knot_hash("1,2,3".as_bytes()),
+            to_hex_str(&knot_hash("1,2,3".as_bytes())),
             "3efbe78a8d82f29979031a4aa0b16a9d"
         );
         assert_eq!(
-            knot_hash("1,2,4".as_bytes()),
+            to_hex_str(&knot_hash("1,2,4".as_bytes())),
             "63960835bcdc130f0b66d7ff4f6a5a8e"
         );
     }
