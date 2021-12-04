@@ -21,7 +21,7 @@ pub mod day_20 {
 
     impl Ord for Vector {
         fn cmp(&self, other: &Self) -> Ordering {
-            Vector::partial_cmp(&self, &other).unwrap()
+            Vector::partial_cmp(self, other).unwrap()
         }
     }
 
@@ -58,7 +58,7 @@ pub mod day_20 {
 
     impl Ord for Particle {
         fn cmp(&self, other: &Self) -> Ordering {
-            Particle::partial_cmp(&self, &other).unwrap()
+            Particle::partial_cmp(self, other).unwrap()
         }
     }
 
@@ -135,13 +135,11 @@ pub mod day_20 {
         consume(&mut s, ", ");
         let acceleration = chomp(&mut s, 'a');
         match s.next() {
-            None => {
-                return Particle {
-                    position,
-                    velocity,
-                    acceleration,
-                }
-            }
+            None => Particle {
+                position,
+                velocity,
+                acceleration,
+            },
             Some(c) => {
                 panic!("Expected EOL, got {}", c);
             }
