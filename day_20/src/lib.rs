@@ -1,38 +1,80 @@
 pub mod day_20 {
 
     use std::cmp::Ordering;
+    use std::collections::HashMap;
+    use std::hash::Hash;
+    use std::ops::{Add, Mul};
 
-    #[derive(PartialEq, Eq)]
-    pub struct Vector {
-        x: i16,
-        y: i16,
-        z: i16,
+    #[derive(PartialEq, Eq, Clone, Hash)]
+    pub struct Vector<T> {
+        x: T,
+        y: T,
+        z: T,
     }
 
-    const fn abs(v: &Vector) -> i16 {
+    fn abs<T>(v: &Vector<T>) -> T
+    where
+        T: Mul<Output = T>,
+        T: Add<Output = T>,
+        T: Copy,
+    {
         v.x * v.x + v.y * v.y + v.z * v.z
     }
 
-    impl PartialOrd for Vector {
+    impl<T> PartialOrd for Vector<T>
+    where
+        T: Ord,
+        T: Copy,
+        T: Mul<Output = T>,
+        T: Add<Output = T>,
+    {
         fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-            Some(i16::cmp(&abs(self), &abs(other)))
+            Some(T::cmp(&abs(self), &abs(other)))
         }
     }
 
-    impl Ord for Vector {
+    impl<T> Ord for Vector<T>
+    where
+        T: Ord,
+        T: Copy,
+        T: Mul<Output = T>,
+        T: Add<Output = T>,
+    {
         fn cmp(&self, other: &Self) -> Ordering {
             Vector::partial_cmp(self, other).unwrap()
         }
     }
 
-    #[derive(PartialEq, Eq)]
-    pub struct Particle {
-        position: Vector,
-        velocity: Vector,
-        acceleration: Vector,
+    impl<'a, T> Add<&'a Vector<T>> for &'a Vector<T>
+    where
+        T: Mul<Output = T>,
+        T: Add<Output = T>,
+        T: Copy,
+    {
+        type Output = Vector<T>;
+        fn add(self, other: Self) -> Vector<T> {
+            Vector {
+                x: self.x + other.x,
+                y: self.y + other.y,
+                z: self.z + other.z,
+            }
+        }
     }
 
-    impl PartialOrd for Particle {
+    #[derive(PartialEq, Eq, Clone, Hash)]
+    pub struct Particle<T> {
+        position: Vector<T>,
+        velocity: Vector<T>,
+        acceleration: Vector<T>,
+    }
+
+    impl<T> PartialOrd for Particle<T>
+    where
+        T: Ord,
+        T: Mul<Output = T>,
+        T: Add<Output = T>,
+        T: Copy,
+    {
         fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
             match Vector::cmp(&self.acceleration, &other.acceleration) {
                 Ordering::Less => {
@@ -56,7 +98,13 @@ pub mod day_20 {
         }
     }
 
-    impl Ord for Particle {
+    impl<T> Ord for Particle<T>
+    where
+        T: Ord,
+        T: Mul<Output = T>,
+        T: Add<Output = T>,
+        T: Copy,
+    {
         fn cmp(&self, other: &Self) -> Ordering {
             Particle::partial_cmp(self, other).unwrap()
         }
@@ -78,7 +126,7 @@ pub mod day_20 {
         }
     }
 
-    fn chomp_int<I>(s: &mut I) -> i16
+    fn chomp_int<I>(s: &mut I) -> i32
     where
         I: Iterator<Item = char>,
     {
@@ -89,13 +137,13 @@ pub mod day_20 {
             (false, first_char)
         };
 
-        let mut answer = char::to_digit(first_char, 10).unwrap() as i16;
+        let mut answer = char::to_digit(first_char, 10).unwrap() as i32;
 
         loop {
             match s.next() {
                 Some(d) => match char::to_digit(d, 10) {
                     Some(d) => {
-                        answer = answer * 10 + (d as i16);
+                        answer = answer * 10 + (d as i32);
                     }
                     None => {
                         return answer * if is_negative { -1 } else { 1 };
@@ -108,7 +156,7 @@ pub mod day_20 {
         }
     }
 
-    fn chomp<I>(s: &mut I, expected_first: char) -> Vector
+    fn chomp<I>(s: &mut I, expected_first: char) -> Vector<i32>
     where
         I: Iterator<Item = char>,
     {
@@ -127,7 +175,7 @@ pub mod day_20 {
         Vector { x, y, z }
     }
 
-    fn parse(s: &str) -> Particle {
+    fn parse(s: &str) -> Particle<i32> {
         let mut s = s.chars();
         let position = chomp(&mut s, 'p');
         consume(&mut s, ", ");
@@ -146,24 +194,82 @@ pub mod day_20 {
         }
     }
 
-    pub fn input() -> Vec<Particle> {
+    pub fn input() -> Vec<Particle<i32>> {
         let input = include_str!("../input.txt");
-        input
-            .lines()
-            .map(|l| parse(l.trim()))
-            .collect::<Vec<Particle>>()
+        input.lines().map(|l| parse(l.trim())).collect::<Vec<_>>()
     }
 
-    pub fn part_1(instructions: &[Particle]) -> usize {
+    pub fn part_1<T>(particles: &[Particle<T>]) -> usize
+    where
+        T: Ord,
+        T: Copy,
+        T: Mul<Output = T>,
+        T: Add<Output = T>,
+    {
         // We need the particle with the least absolute acceleration.
         // If there is a tie, we need the particle with the least absolute velocity.
         // If they are still tied, we need the particle with the least absolute position.
-        let (index, _) = instructions.iter().enumerate().min_by_key(|x| x.1).unwrap();
+        let (index, _) = particles.iter().enumerate().min_by_key(|x| x.1).unwrap();
         index
     }
 
-    pub fn part_2(_instructions: &[Particle]) -> usize {
-        panic!("TODO");
+    fn tick_one<T>(particle: &mut Particle<T>)
+    where
+        T: Mul<Output = T>,
+        T: Add<Output = T>,
+        T: Copy,
+    {
+        particle.velocity = &particle.velocity + &particle.acceleration;
+        particle.position = &particle.position + &particle.velocity;
+    }
+
+    fn tick<T>(particles: &mut [(bool, &mut Particle<T>)])
+    where
+        T: Mul<Output = T>,
+        T: Add<Output = T>,
+        T: Copy,
+        T: Clone,
+        T: Eq,
+        T: Hash,
+    {
+        for (is_gone, particle) in particles.iter_mut() {
+            if !*is_gone {
+                tick_one(particle);
+            }
+        }
+
+        let mut seen = HashMap::new();
+
+        for i in 0..particles.len() {
+            if !particles[i].0 {
+                match seen.insert(particles[i].1.clone(), i) {
+                    None => {}
+                    Some(old_index) => {
+                        particles[old_index].0 = true;
+                        particles[i].0 = true;
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn part_2<T>(particles: &[Particle<T>]) -> usize
+    where
+        T: Mul<Output = T>,
+        T: Add<Output = T>,
+        T: Clone,
+        T: Copy,
+        T: Eq,
+        T: Hash,
+    {
+        let mut particles = particles.to_vec();
+        let mut positions = particles.iter_mut().map(|p| (false, p)).collect::<Vec<_>>();
+
+        for _ in 0..1000 {
+            tick(&mut positions);
+        }
+
+        positions.iter().filter(|(is_gone, _)| !is_gone).count()
     }
 }
 
@@ -175,6 +281,6 @@ mod tests {
     fn test_day_20() {
         let input = input();
         assert_eq!(part_1(&input), 243);
-        assert_eq!(part_2(&input), 907);
+        assert_eq!(part_2(&input), 0);
     }
 }
