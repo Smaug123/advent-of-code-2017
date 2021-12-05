@@ -126,7 +126,7 @@ pub mod day_20 {
         }
     }
 
-    fn chomp_int<I>(s: &mut I) -> i32
+    fn chomp_int<I>(s: &mut I) -> i64
     where
         I: Iterator<Item = char>,
     {
@@ -137,13 +137,13 @@ pub mod day_20 {
             (false, first_char)
         };
 
-        let mut answer = char::to_digit(first_char, 10).unwrap() as i32;
+        let mut answer = char::to_digit(first_char, 10).unwrap() as i64;
 
         loop {
             match s.next() {
                 Some(d) => match char::to_digit(d, 10) {
                     Some(d) => {
-                        answer = answer * 10 + (d as i32);
+                        answer = answer * 10 + (d as i64);
                     }
                     None => {
                         return answer * if is_negative { -1 } else { 1 };
@@ -156,7 +156,7 @@ pub mod day_20 {
         }
     }
 
-    fn chomp<I>(s: &mut I, expected_first: char) -> Vector<i32>
+    fn chomp<I>(s: &mut I, expected_first: char) -> Vector<i64>
     where
         I: Iterator<Item = char>,
     {
@@ -175,7 +175,7 @@ pub mod day_20 {
         Vector { x, y, z }
     }
 
-    fn parse(s: &str) -> Particle<i32> {
+    fn parse(s: &str) -> Particle<i64> {
         let mut s = s.chars();
         let position = chomp(&mut s, 'p');
         consume(&mut s, ", ");
@@ -194,7 +194,7 @@ pub mod day_20 {
         }
     }
 
-    pub fn input() -> Vec<Particle<i32>> {
+    pub fn input() -> Vec<Particle<i64>> {
         let input = include_str!("../input.txt");
         input.lines().map(|l| parse(l.trim())).collect::<Vec<_>>()
     }
@@ -223,7 +223,7 @@ pub mod day_20 {
         particle.position = &particle.position + &particle.velocity;
     }
 
-    fn tick<T>(particles: &mut [(bool, &mut Particle<T>)])
+    fn tick<T>(particles: &mut [(bool, &mut Particle<T>)], escape_index: usize)
     where
         T: Mul<Output = T>,
         T: Add<Output = T>,
@@ -232,17 +232,17 @@ pub mod day_20 {
         T: Eq,
         T: Hash,
     {
-        for (is_gone, particle) in particles.iter_mut() {
+        let mut seen: HashMap<Vector<_>, _> = HashMap::new();
+
+        for (is_gone, particle) in particles.iter_mut().take(escape_index + 1) {
             if !*is_gone {
                 tick_one(particle);
             }
         }
 
-        let mut seen = HashMap::new();
-
-        for i in 0..particles.len() {
+        for i in 0..=escape_index {
             if !particles[i].0 {
-                match seen.insert(particles[i].1.clone(), i) {
+                match seen.insert(particles[i].1.position.clone(), i) {
                     None => {}
                     Some(old_index) => {
                         particles[old_index].0 = true;
@@ -259,17 +259,32 @@ pub mod day_20 {
         T: Add<Output = T>,
         T: Clone,
         T: Copy,
-        T: Eq,
+        T: Ord,
         T: Hash,
     {
         let mut particles = particles.to_vec();
+        // Once a particle has escaped, just skip it from consideration.
+        particles.sort();
+
         let mut positions = particles.iter_mut().map(|p| (false, p)).collect::<Vec<_>>();
 
-        for _ in 0..1000 {
-            tick(&mut positions);
-        }
+        let mut escape_index = positions.len() - 1;
+        let mut previous = escape_index - 1;
 
-        positions.iter().filter(|(is_gone, _)| !is_gone).count()
+        loop {
+            tick(&mut positions, escape_index);
+            while positions[escape_index].0
+                || positions[escape_index].1.position > positions[previous].1.position
+            {
+                escape_index = previous;
+                previous = match (0..previous).rev().filter(|i| !positions[*i].0).next() {
+                    None => {
+                        return positions.iter().filter(|(is_gone, _)| !is_gone).count();
+                    }
+                    Some(previous) => previous,
+                };
+            }
+        }
     }
 }
 
@@ -281,6 +296,6 @@ mod tests {
     fn test_day_20() {
         let input = input();
         assert_eq!(part_1(&input), 243);
-        assert_eq!(part_2(&input), 0);
+        assert_eq!(part_2(&input), 648);
     }
 }
